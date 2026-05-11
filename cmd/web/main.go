@@ -8,14 +8,17 @@ import (
 	"net/http"
 	"os"
 
-	_ "github.com/go-sql-driver/mysql" // New import
+	"github.com/go-playground/form/v4" // New import
 	"letsgo.nikolagolijanin.net/internal/models"
+
+	_ "github.com/go-sql-driver/mysql" // New import
 )
 
 type application struct {
 	logger        *slog.Logger
 	snippets      *models.SnippetModel
 	templateCache map[string]*template.Template
+	formDecoder   *form.Decoder
 }
 
 func main() {
@@ -29,17 +32,19 @@ func main() {
 		os.Exit(1)
 	}
 	defer db.Close()
-	// Initialize a new template cache...
 	templateCache, err := newTemplateCache()
 	if err != nil {
 		logger.Error(err.Error())
 		os.Exit(1)
 	}
+	// Initialize a decoder instance...
+	formDecoder := form.NewDecoder()
 	// And add it to the application dependencies.
 	app := &application{
 		logger:        logger,
 		snippets:      &models.SnippetModel{DB: db},
 		templateCache: templateCache,
+		formDecoder:   formDecoder,
 	}
 	logger.Info("starting server", "addr", *addr)
 	err = http.ListenAndServe(*addr, app.routes())
